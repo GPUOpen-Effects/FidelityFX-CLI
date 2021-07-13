@@ -1,0 +1,8 @@
+[submodule "Shaders/FidelityFX-CAS"]
+	path = Shaders/FidelityFX-CAS
+	url = ../FidelityFX-CAS
+	branch = master
+[submodule "Shaders/FidelityFX-FSR"]
+	path = Shaders/FidelityFX-FSR
+	url = ../FidelityFX-FSR
+	branch = development
