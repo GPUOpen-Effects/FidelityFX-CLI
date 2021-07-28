@@ -5,4 +5,4 @@
 [submodule "Shaders/FidelityFX-FSR"]
 	path = Shaders/FidelityFX-FSR
 	url = ../FidelityFX-FSR
-	branch = development
+	branch = master

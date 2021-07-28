@@ -36,9 +36,11 @@ AF4 FsrRcasLoadF(ASU2 p)
 
 void FsrRcasInputF(inout AF1 r,inout AF1 g,inout AF1 b)
 {
-	if(!LINEAR)
+	if(LINEAR)
 	{
-		r*=r;g*=g;b*=b;
+		r = AToSrgbF1(r);
+		g = AToSrgbF1(g);
+		b = AToSrgbF1(b);
 	}
 }
 
@@ -53,9 +55,9 @@ void mainCS(uint3 LocalThreadId : SV_GroupThreadID, uint3 WorkGroupId : SV_Group
 	// Run the filter.
 	AF3 c;
 	FsrRcasF(c.r,c.g,c.b,gxy,const0);
-	if(!LINEAR)
+	if(LINEAR)
 	{
-		c = sqrt(c);
+		c = AFromSrgbF3(c);
 	}
 	OutputTexture[gxy] = AF4(c, 1);
 }

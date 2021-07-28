@@ -59,7 +59,7 @@ namespace RCAS_Linear1
 
 static const wchar_t* const APP_NAME = L"FidelityFX-CLI";
 static const wchar_t* const EXE_NAME = L"FidelityFX_CLI";
-static const wchar_t* const APP_VERSION = L"1.0.0";
+static const wchar_t* const APP_VERSION = L"1.0.1";
 
 enum class InterpolationMode
 {
@@ -354,7 +354,9 @@ void LaunchParameters::ParseCommandLine(int argCount, const wchar_t* const* args
     }
     if(this->sharpness == FLT_MAX)
     {
-        this->sharpness = 0.f;
+        this->sharpness = this->interpolationMode == InterpolationMode::RCAS
+            ? 0.2f  // Default sharpness for RCAS
+            : 0.0f; // Default sharpness for CAS
     }
     else
     {
@@ -562,13 +564,13 @@ void Application::PrintColorSpaceInformation() const
         switch(m_Params.interpolationMode)
         {
         case InterpolationMode::CAS:
-        case InterpolationMode::RCAS:
             if(m_Params.linear)
                 wprintf(L"Treating input/output images as linear space, processing as linear.\n");
             else
                 wprintf(L"Treating input/output images as sRGB space, converting to linear for processing.\n");
             break;
         case InterpolationMode::EASU:
+        case InterpolationMode::RCAS:
             if(m_Params.linear)
                 wprintf(L"Treating input/output images as linear space, converting to sRGB for processing.\n");
             else
