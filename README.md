@@ -22,7 +22,7 @@ THE SOFTWARE.
 Simple command line tool that processes image files using the FidelityFX Super Resolution (FSR) or Contrast Adaptive Sharpening (CAS) shader systems.
 
 ```
-FidelityFX-CLI 1.0.1
+FidelityFX-CLI 1.0.2
 
 Command line syntax:
   FidelityFX_CLI.exe [Options] <SrcFile1> <DstFile1> <SrcFile2> <DstFile2> ...

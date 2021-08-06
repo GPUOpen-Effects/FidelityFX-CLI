@@ -59,7 +59,7 @@ namespace RCAS_Linear1
 
 static const wchar_t* const APP_NAME = L"FidelityFX-CLI";
 static const wchar_t* const EXE_NAME = L"FidelityFX_CLI";
-static const wchar_t* const APP_VERSION = L"1.0.1";
+static const wchar_t* const APP_VERSION = L"1.0.2";
 
 enum class InterpolationMode
 {
