@@ -59,7 +59,7 @@ namespace RCAS_Linear1
 
 static const wchar_t* const APP_NAME = L"FidelityFX-CLI";
 static const wchar_t* const EXE_NAME = L"FidelityFX_CLI";
-static const wchar_t* const APP_VERSION = L"1.0.2";
+static const wchar_t* const APP_VERSION = L"1.0.3";
 
 enum class InterpolationMode
 {
@@ -122,6 +122,16 @@ static inline bool InterpolationModeNeedsGpu(InterpolationMode mode)
 #define CHECK_BOOL(expr)  do { if(!(expr)) throw std::runtime_error(__FILE__ "(" LINE_STRING "): !( " #expr " )"); } while(false)
 #define CHECK_HR(expr)  do { if(FAILED(expr)) throw std::runtime_error(__FILE__ "(" LINE_STRING "): FAILED( " #expr " )"); } while(false)
 
+struct vec2
+{
+    float x, y;
+    vec2() { }
+    vec2(float x_, float y_) : x(x_), y(y_) { }
+
+    bool operator==(const vec2& rhs) const { return x == rhs.x && y == rhs.y; }
+    bool operator!=(const vec2& rhs) const { return x != rhs.x || y != rhs.y; }
+};
+
 struct uvec2
 {
     uint32_t x, y;
@@ -164,10 +174,19 @@ struct LaunchParameters
     bool fp16 = false;
     float sharpness = FLT_MAX;
     uvec2 dstSize = uvec2(UINT32_MAX, UINT32_MAX);
+    vec2 dstSizePercent = vec2(0.f, 0.f);
     std::vector<FileToProcess> filesToProcess;
 
-    bool HasScaling() const { return dstSize.x != UINT32_MAX || dstSize.y != UINT32_MAX; }
+    bool HasScaling() const
+    {
+        return dstSize.x != UINT32_MAX || dstSize.y != UINT32_MAX ||
+            dstSizePercent.x != 0.f || dstSizePercent.y != 0.f;
+    }
     void ParseCommandLine(int argCount, const wchar_t* const* args);
+
+private:
+    static void ParseScale(uint32_t& outScale, float& outScalePercent, const wchar_t* arg);
+    static bool ParseQualityMode(vec2& outScalePercent, const wchar_t* arg);
 };
 
 class CoInitializeObj
@@ -275,6 +294,13 @@ void LaunchParameters::PrintCommandLineSyntax()
     wprintf(
         L"Options:\n"
         L"-Scale <DstWidth> <DstHeight>\n"
+        L"  Width, Height can be:\n"
+        L"    Number: -Scale 3840 2160\n"
+        L"    Scale factor: -Scale 2x 2x\n"
+        L"    Percent: -Scale 150%% 150%%\n"
+        L"-QualityMode <Quality>\n"
+        L"  Specify instead of -Scale to use one of the predefined scaling factors.\n"
+        L"  Quality can be: UltraQuality (1.3x), Quality (1.5x), Balanced (1.7x), Performance (2x)\n"
         L"-Mode <Mode>\n"
         L"  Modes from FSR package:\n"
         L"    EASU - Edge Adaptive Spatial Upsampling (default) aliases: FSR, FSR1\n"
@@ -311,10 +337,15 @@ void LaunchParameters::ParseCommandLine(int argCount, const wchar_t* const* args
                 throw std::runtime_error("Invalid Mode.");
             }
         }
+        else if(wcscmp(args[i], L"-QualityMode") == 0 && i + 1 < argCount)
+        {
+            if(!ParseQualityMode(this->dstSizePercent, args[++i]))
+                throw std::runtime_error("Invalid -QualityMode argument.");
+        }
         else if(wcscmp(args[i], L"-Scale") == 0 && i + 2 < argCount)
         {
-            this->dstSize.x = (uint32_t)_wtoi(args[++i]);
-            this->dstSize.y = (uint32_t)_wtoi(args[++i]);
+            ParseScale(this->dstSize.x, this->dstSizePercent.x, args[++i]);
+            ParseScale(this->dstSize.y, this->dstSizePercent.y, args[++i]);
         }
         else if(wcscmp(args[i], L"-Linear") == 0)
         {
@@ -366,6 +397,39 @@ void LaunchParameters::ParseCommandLine(int argCount, const wchar_t* const* args
             throw std::runtime_error("Sharpness can only be used in CAS or RCAS mode.");
         }
     }
+}
+
+void LaunchParameters::ParseScale(uint32_t& outScale, float& outScalePercent, const wchar_t* arg)
+{
+    const size_t argLen = wcslen(arg);
+    if(argLen == 0)
+        return;
+    if(arg[argLen - 1] == 'x')
+    {
+        outScalePercent = (float)_wtof(arg);
+    }
+    else if(arg[argLen - 1] == '%')
+    {
+        outScalePercent = (float)_wtof(arg) * 0.01f;
+    }
+    else
+        outScale = (uint32_t)_wtoi(arg);
+}
+
+bool LaunchParameters::ParseQualityMode(vec2& outScalePercent, const wchar_t* arg)
+{
+    if(_wcsicmp(arg, L"UltraQuality") == 0)
+        outScalePercent = vec2(1.3f, 1.3f);
+    else if(_wcsicmp(arg, L"Quality") == 0)
+        outScalePercent = vec2(1.5f, 1.5f);
+    else if(_wcsicmp(arg, L"Balanced") == 0)
+        outScalePercent = vec2(1.7f, 1.7f);
+    else if(_wcsicmp(arg, L"Performance") == 0)
+        outScalePercent = vec2(2.0f, 2.0f);
+    else
+        return false;
+
+    return true;
 }
 
 GpuResources::GpuResources(const LaunchParameters& params)
@@ -598,9 +662,26 @@ void Application::ProcessFile(const FileToProcess& fileToProcess) const
     uvec2 srcSize = uvec2(0, 0);
     CHECK_HR( frameDecode->GetSize(&srcSize.x, &srcSize.y) );
 
-    const uvec2 dstSize = uvec2(
-        m_Params.dstSize.x != UINT32_MAX ? m_Params.dstSize.x : srcSize.x,
-        m_Params.dstSize.y != UINT32_MAX ? m_Params.dstSize.y : srcSize.y);
+    uvec2 dstSize = srcSize;
+
+    if(m_Params.dstSize.x != UINT32_MAX)
+        dstSize.x = m_Params.dstSize.x;
+    else if(m_Params.dstSizePercent.x != 0.f)
+        dstSize.x = (uint32_t)(srcSize.x * m_Params.dstSizePercent.x + 0.5f);
+    if(m_Params.dstSize.y != UINT32_MAX)
+        dstSize.y = m_Params.dstSize.y;
+    else if(m_Params.dstSizePercent.y != 0.f)
+        dstSize.y = (uint32_t)(srcSize.y * m_Params.dstSizePercent.y + 0.5f);
+
+    if(dstSize == srcSize)
+        wprintf(L"Image size: %u x %u.\n", srcSize.x, srcSize.y);
+    else
+    {
+        wprintf(L"Image size: %u x %u scaled to %u x %u.\n", srcSize.x, srcSize.y, dstSize.x, dstSize.y);
+        if(dstSize.x > srcSize.x * 2 || dstSize.y > srcSize.y * 2)
+            wprintf(L"WARNING: SCALING RATIO HIGHER THAN 2X IN EITHER DIRECTION IS UNSUPPORTED!\n");
+
+    }
 
     if(InterpolationModeNeedsGpu(m_Params.interpolationMode))
     {

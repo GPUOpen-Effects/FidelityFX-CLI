@@ -17,25 +17,36 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-## Overview
+## Introduction
 
-Simple command line tool that processes image files using the FidelityFX Super Resolution (FSR) or Contrast Adaptive Sharpening (CAS) shader systems.
+FidelityFX Super Resolution (FSR) is an open source, high-quality solution for producing high resolution frames from lower resolution inputs. For more information, see dedciated page on [amd.com](https://www.amd.com/en/technologies/radeon-software-fidelityfx-super-resolution), [GPUOpen.com](https://gpuopen.com/fsr), [GitHub](https://github.com/GPUOpen-Effects/FidelityFX-FSR).
+
+Contrast Adaptive Sharpening (CAS) is a low overhead adaptive sharpening algorithm with optional up-sampling. For more information, see dedciated page on [amd.com](https://www.amd.com/en/technologies/radeon-software-fidelityfx), [GPUOpen.com](https://gpuopen.com/fidelityfx-cas/), [GitHub](https://github.com/GPUOpen-Effects/FidelityFX-CAS).
+
+This project is a small command-line Windows tool that processes image files using the FSR or CAS algorithm. It allows to test how the shaders would affect screenshots from your game. Releases contain executable binary while this respository contains source code.
+
+## Command line syntax
 
 ```
-FidelityFX-CLI 1.0.2
-
+FidelityFX-CLI 1.0.3
 Command line syntax:
   FidelityFX_CLI.exe [Options] <SrcFile1> <DstFile1> <SrcFile2> <DstFile2> ...
-
 Options:
 -Scale <DstWidth> <DstHeight>
+  Width, Height can be:
+    Number: -Scale 3840 2160
+    Scale factor: -Scale 2x 2x
+    Percent: -Scale 150% 150%
+-QualityMode <Quality>
+  Specify instead of -Scale to use one of the predefined scaling factors.
+  Quality can be: UltraQuality (1.3x), Quality (1.5x), Balanced (1.7x), Performance (2x)
 -Mode <Mode>
   Modes from FSR package:
     EASU - Edge Adaptive Spatial Upsampling (default) aliases: FSR, FSR1
     RCAS - Robust Contrast Adaptive Sharpening (doesn't support Scale)
   Modes from CAS package:
     CAS - Contrast Adaptive Sharpening
-  Modes from Windows Imaging Component (WICBitmapInterpolationMode):
+  Modes from Windows Imaging Component:
     NearestNeighbor, Linear, Cubic, HighQualityCubic, Fant
 -Sharpness <Value>
   -Mode CAS: range from 0.0 (default) to 1.0 (maximum extra sharpness)
@@ -47,10 +58,9 @@ Options:
   If not set (default), treats input and output image as sRGB.
   If set, treats input and output image as linear.
   Works only when -FP16 is not specified.
-
-Supported input formats: BMP, PNG, ICO, JPG, TIF, GIF
+Supported formats: BMP, PNG, ICO, JPG, TIF, GIF
 ```
 
-Written in C++ using Visual Studio 2019. No external dependencies other than the WIC API and Direct3D 11. Image file formats are handled using the [Windows Imaging Component (WIC)](https://docs.microsoft.com/en-us/windows/win32/wic/-wic-about-windows-imaging-codec) framework. Shaders are compiled to H files (with a little help from the [Fx Batch Compiler](https://github.com/sawickiap/FxBatchCompiler) tool) and bundled with the source code to build the executable.
+## Additional information
 
-
+Written in C++ using Visual Studio 2019 and Cmake. No external dependencies other than the Windows API and Direct3D 11. Image file formats are handled using the [Windows Imaging Component (WIC)](https://docs.microsoft.com/en-us/windows/win32/wic/-wic-about-windows-imaging-codec) framework (part of Windows API). Shaders are compiled to H files (with a little help from the [Fx Batch Compiler](https://github.com/sawickiap/FxBatchCompiler) tool) and bundled with the source code to build the executable.
