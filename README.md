@@ -64,3 +64,6 @@ Supported formats: BMP, PNG, ICO, JPG, TIF, GIF
 ## Additional information
 
 Written in C++ using Visual Studio 2019 and Cmake. No external dependencies other than the Windows API and Direct3D 11. Image file formats are handled using the [Windows Imaging Component (WIC)](https://docs.microsoft.com/en-us/windows/win32/wic/-wic-about-windows-imaging-codec) framework (part of Windows API). Shaders are compiled to H files (with a little help from the [Fx Batch Compiler](https://github.com/sawickiap/FxBatchCompiler) tool) and bundled with the source code to build the executable.
+
+## GUI Assistance
+A GUI front is available [here](https://github.com/NukeGH05T/FiedilityFX-Assist) .
